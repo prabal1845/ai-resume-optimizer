@@ -1,5 +1,7 @@
 AI Resume Optimizer
 
+ **Live Demo:** https://ai-resume-optimizer-tyg3awr2j3m2zcdtydtuwe.streamlit.app/
+
 An AI-powered resume optimization tool that analyzes a resume against a job description, calculates an ATS-style match score, identifies important keywords, and generates an optimized version of the resume using Google Gemini.
 
 FEATURES
