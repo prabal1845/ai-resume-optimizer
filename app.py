@@ -44,8 +44,6 @@ def extract_pdf_text(file):
     return text
 
 
-# Section headers this tool recognizes when splitting a resume.
-# Add more synonyms here if a resume uses a header not in this list.
 SECTION_HEADERS = [
     "PROFESSIONAL SUMMARY", "SUMMARY", "OBJECTIVE", "CAREER OBJECTIVE",
     "PROFESSIONAL EXPERIENCE", "WORK EXPERIENCE", "EXPERIENCE",
@@ -57,9 +55,6 @@ SECTION_HEADERS = [
     "ACHIEVEMENTS", "AWARDS",
 ]
 
-# Sections that are meaningful to score against a job description.
-# Education/Certifications/Extracurricular are excluded — comparing them
-# to a JD via keyword overlap doesn't produce a meaningful signal.
 SCORABLE_SECTIONS = {
     "PROFESSIONAL SUMMARY", "SUMMARY", "OBJECTIVE", "CAREER OBJECTIVE",
     "PROFESSIONAL EXPERIENCE", "WORK EXPERIENCE", "EXPERIENCE",
@@ -69,13 +64,6 @@ SCORABLE_SECTIONS = {
 
 
 def split_into_sections(text, headers=SECTION_HEADERS):
-    """
-    Splits resume text into sections based on common header lines.
-    Works when a header appears alone on its own line (true for the
-    vast majority of standard resume templates and PDF text extraction).
-    Returns {} if no recognized headers are found, so callers should
-    fall back to whole-resume scoring in that case.
-    """
     pattern = r'(?im)^\s*(' + '|'.join(re.escape(h) for h in headers) + r')\s*$'
     matches = list(re.finditer(pattern, text))
 
@@ -91,25 +79,6 @@ def split_into_sections(text, headers=SECTION_HEADERS):
 
 
 def get_score_for_text(text, vectorizer, jd_vector, min_sim, max_sim, jd_keyword_weights=None):
-    """
-    Shared scoring logic: TF-IDF cosine similarity normalized to 0-100.
-
-    For short sections (e.g. Projects, Skills), pure cosine similarity
-    against the JD often collapses to ~0 even when the section legitimately
-    names several JD-relevant keywords, since there just isn't enough text
-    to build up vocabulary overlap. To avoid those sections reading as a
-    flat 0%, we blend in a keyword-overlap score when jd_keyword_weights
-    is provided (used for section-level scoring, not overall scoring).
-
-    jd_keyword_weights should be the TOP N (kw, tfidf_weight) pairs from the
-    JD only — not the full ~200-word vectorizer vocabulary. Using the full
-    vocabulary as the denominator was the earlier bug: it buries real
-    keyword hits under hundreds of low-signal words, so even a section that
-    names 8-10 core JD terms scores only a few percent. Weighting by each
-    keyword's TF-IDF importance (instead of counting every match equally)
-    also means matching a JD's most emphasized terms counts more than
-    matching a word the JD only mentions once.
-    """
     vec = vectorizer.transform([text])
     raw = cosine_similarity(vec, jd_vector)[0][0]
     normalized = (raw - min_sim) / (max_sim - min_sim)
@@ -126,33 +95,6 @@ def get_score_for_text(text, vectorizer, jd_vector, min_sim, max_sim, jd_keyword
 
 
 def get_ats_score(resume_text, job_desc):
-    """
-    Computes:
-      1. An overall ATS score for the whole resume.
-      2. A per-section breakdown (Summary, Experience, Skills, Projects)
-         when recognizable section headers are found.
-      3. Matched/missing keywords based on the JD's own vocabulary.
-
-    Calibration bounds were derived empirically by testing this scoring
-    function against resume/JD pairs of known quality (see comments below
-    for the reference points used):
-
-    OVERALL resume bounds (min=0.10, max=0.95):
-      - Unrelated resume vs. ML/Data Science JD:        raw sim ~0.11
-      - General CS resume, light on ML:                  raw sim ~0.54
-      - ML-focused resume w/ relevant internships:        raw sim ~0.61
-      - Resume that closely mirrors the JD's language:    raw sim ~0.95
-
-    SECTION-level bounds (min=0.0, max=0.65) — sections are much shorter
-    than a full resume, so they carry less vocabulary overlap by nature.
-    Weak/moderate/strong test sections (Summary, Skills, Experience,
-    Projects) topped out around raw sim 0.55-0.67 for genuinely strong
-    matches, and 0.0 for sections sharing no vocabulary with the JD at all.
-
-    Section scores are further blended with direct keyword-hit-rate
-    (see get_score_for_text) so that short sections like Projects aren't
-    unfairly flattened to 0% just for lacking broad phrasing overlap.
-    """
     vectorizer = TfidfVectorizer(stop_words='english', max_features=200)
     vectorizer.fit([job_desc])
     jd_vector = vectorizer.transform([job_desc])
@@ -165,9 +107,6 @@ def get_ats_score(resume_text, job_desc):
     jd_keyword_scores = [(kw, jd_array[i]) for i, kw in enumerate(feature_names) if jd_array[i] > 0]
     jd_keyword_scores.sort(key=lambda x: x[1], reverse=True)
 
-    # Only the JD's top, highest-weight keywords are used for section-level
-    # keyword-overlap scoring — using the full ~200-word vocabulary here
-    # was the earlier bug (real matches got buried under the denominator).
     top_jd_keywords = jd_keyword_scores[:25]
 
     sections = split_into_sections(resume_text)
