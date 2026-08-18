@@ -1,140 +1,63 @@
-AI Resume Optimizer
+# AI Resume Optimizer
 
- **Live Demo:** https://ai-resume-optimizer-tyg3awr2j3m2zcdtydtuwe.streamlit.app/
+Live demo: https://ai-resume-optimizer-tyg3awr2j3m2zcdtydtuwe.streamlit.app/
 
-An AI-powered resume optimization tool that analyzes a resume against a job description, calculates an ATS-style match score, identifies important keywords, and generates an optimized version of the resume using Google Gemini.
+A tool that compares your resume against a job description and tells you how well it matches. Upload a resume PDF and paste in a job description, and it calculates an ATS-style score, shows which keywords from the JD are missing from your resume, and uses Google Gemini to rewrite your resume so it's more aligned with the role.
 
-FEATURES
+## What it does
 
-* Upload resumes in PDF format
-* Calculate an ATS-style resume match score
-* Identify keywords found in the resume
-* Identify important missing keywords
-* Analyze resume sections individually
-* Rewrite and optimize resume content using Google Gemini
-* Download the optimized resume as a PDF
-* Tailor resume content to a specific job description
+- Upload a resume as PDF
+- Get an overall ATS match score against the job description
+- See which JD keywords are already in your resume and which ones aren't
+- Get a per-section breakdown (Summary, Skills, Experience, Projects) if the resume has clear section headers
+- Get an AI-rewritten version of the resume with stronger action verbs, added metrics, and missing keywords worked in
+- Download the rewritten resume as a PDF
 
-TECHNOLOGIES USED
+## How the scoring works
 
-Python
-Streamlit
-Google Gemini
-Scikit-learn
-PyPDF2
-ReportLab
-python-dotenv
+Both the resume and job description are converted into TF-IDF vectors, and cosine similarity is used to measure how close they are. Raw similarity scores tend to fall in a fairly narrow range, so they're rescaled to a 0-100 scale that's easier to read.
 
-HOW IT WORKS
+Section-level scores work a bit differently — since sections like Skills or Projects are short, cosine similarity alone often underscores them even when they contain the right keywords. So section scores blend in a keyword-overlap check as well, weighted by how important each keyword is in the job description.
 
-Resume PDF
-↓
-Extract Resume Text
-↓
-Job Description
-↓
-TF-IDF and Cosine Similarity
-↓
-ATS Score and Keyword Analysis
-↓
-Missing Keyword Detection
-↓
-Google Gemini
-↓
-Optimized Resume
-↓
-Download PDF
+## Tech used
 
-ATS SCORING
+Python, Streamlit, Google Gemini, Scikit-learn, PyPDF2, ReportLab, python-dotenv
 
-The application uses TF-IDF vectorization and cosine similarity to compare the resume with the job description.
+## Running it locally
 
-It also performs keyword analysis to identify important job-description terms that appear in or are missing from the resume.
-
-The application provides individual scores for recognizable resume sections such as:
-
-Summary
-Experience
-Skills
-Projects
-
-AI RESUME OPTIMIZATION
-
-Google Gemini is used to:
-
-Rewrite resume bullet points
-Use stronger action verbs
-Add impact metrics where possible
-Naturally incorporate missing keywords
-Keep the resume professional and ATS-friendly
-
-PDF GENERATION
-
-The optimized resume can be converted into a downloadable PDF directly from the application.
-
-INSTALLATION
-
-1. Clone the repository
-
-git clone https://github.com/YOUR-USERNAME/ai-resume-optimizer.git
-
+```
+git clone https://github.com/prabal1845/ai-resume-optimizer.git
 cd ai-resume-optimizer
-
-2. Install dependencies
-
 pip install -r requirements.txt
+```
 
-3. Configure your Gemini API key
-
-Create a .env file in the project directory.
-
+Create a `.env` file with:
+```
 GEMINI_API_KEY=your_api_key_here
+```
 
-Never commit your .env file or API key to GitHub.
-
-4. Run the application
-
+Then run:
+```
 python -m streamlit run app.py
+```
 
-The application will open locally in your browser.
+## Project structure
 
-PROJECT STRUCTURE
-
+```
 ai-resume-optimizer/
+├── app.py
+├── requirements.txt
+├── .gitignore
+└── README.md
+```
 
-app.py
-requirements.txt
-.gitignore
-README.md
+## Why I built this
 
-USE CASE
+Applying to SDE and ML roles means tailoring your resume for every JD, which gets tedious fast. This automates the "does my resume actually match this posting" check and gives concrete suggestions instead of guessing.
 
-This project helps job seekers understand how closely their resume matches a specific job description and improve their resume accordingly.
+## Possible improvements
 
-It can be useful for:
-
-Software Development Engineer roles
-Machine Learning Engineer roles
-AI/ML internships
-Data Science roles
-Other technical positions
-
-SECURITY
-
-API credentials are stored using environment variables and excluded from version control using .gitignore.
-
-Never share or commit your Gemini API key.
-
-FUTURE IMPROVEMENTS
-
-Resume formatting improvements
-Job-description recommendations
-Multiple resume templates
-More advanced ATS analysis
-Resume version history
-Support for additional document formats
-Deployment to a public cloud platform
-
-PROJECT
-
-Built as a practical AI/ML application combining natural language processing, machine learning, and generative AI.
+- Better formatting control for the generated resume
+- Support for DOCX uploads, not just PDF
+- Resume version history
+- More advanced section detection for non-standard resume formats
